@@ -1,0 +1,212 @@
+---
+title: "Untitled"
+author: "Lei Duan"
+date: "November 7, 2017"
+output: html_document
+---
+```{r echo = FALSE}
+knitr::opts_chunk$set(comment=NA, echo = FALSE, cache=FALSE, dpi = 96, message=FALSE, warning=FALSE)
+suppressWarnings(suppressMessages(library(radiant)))
+#loadr('~/radiant.sessions/r_data.rda')
+```
+
+## MGTA453 Restaurant Location Choice of Croq'Pain  
+### Group 4(Qingqing Long, Xiaochen Li, Nehal, Lei Duan)
+
+============================================================================================================
+
+# Part I: Introduction
+
+## Case Background
+
+According to revenue figures of stores, seven of ten new stores of Croq'Pain opened in last 10 years did not perform well. A better system of selection of locations of new stores need to be built to help managers of Croq'Pain wisely choose locations of  future stores. 
+
+## Objective
+* Develop a regression model of operational earning of stores based on all figures from all previous stores;
+
+* Filter most significant explanatory variables which have the most impact on operation earning;
+
+* Predict operation earning and choose the most optimized locations of future stores.
+
+# Part II: Data preparation
+
+Firstly, we  explore the data by reading the description. Then,  we draw basic distribution, scatter and correlation plots to check abnormality. Afterwards, we fix and clean partial data to make preparation for further processing. 
+
+## Data Cleansing
+
+### 1) Remove Duplicates
+
+We remove duplicated entries of identical stores thus there are 60 stores left in dataset.
+
+```{r}
+## remove rows with duplicate values
+r_data[["CroqPainFix"]] <- distinct(r_data[["CroqPain"]], STOR, .keep_all = TRUE)
+
+## register the new dataset
+register("CroqPainFix", "CroqPain")
+```
+
+### 2) Correct the data entry error in store 1 
+
+***Figure 1*** 
+```{r fig.width = 6, fig.height = 3.5, dpi = 96}
+visualize(dataset = "CroqPain", xvar = "EARN", yvar = "total", bins = 50, custom = FALSE)
+r_data[["CroqPainFix"]][1,2] <- r_data[["CroqPainFix"]][1,2] / 1000
+```
+
+After checking all details of data, we think that outlier in `EARN` (see ***Figure 1***)is caused by a mistake of value inputting. Because the unit of earning is $1000, the typo is due to forgetting divide by 1000 when input the data of  store one. Thus, we divide the outlier earning value by 1000 to fix it.
+
+
+## Data Explore
+
+### 1) histogram
+
+After cleansing, the most variables' distribution is accecptable, then it is okay to move on. 
+(See distribution in Appendix, ***Exhibit 1***)
+
+
+#### 2) scatterplots and correlation plots on total and P15 - P55
+
+Next, by using scatterplots and correlations, the high corrlations is found among the population in each age group with `total` pupolation within 3 km of the restaurant.(which indicates the potential of collinearity.)(see ***Figure 2*** and more detailed in Appendix, ***Exhibit 2***)
+
+***Figure 2***
+
+```{r fig.width = 9.15, fig.height = 9.15, dpi = 96}
+result <- correlation(dataset = "CroqPainFix", vars = c("total", "P15", "P25", "P35", "P45", "P55"))
+summary(result)
+plot(result, n = 1000)
+```
+
+# Part III: Building Up Model
+
+We normalize variables such as `EARN`, `COMP`, `NCOMP`, `NREST` and various age period residents (i.e. P15-P55) by total amount of residents.By compare the dashboard of un-normalized and normalized data, **we prefer to normalized data for further analysis based on more accountable variables (i.e: earnings per person and different age group proportion) and  heteroscedasticity elimination(more normal distribution)**(see ***Appendix, Exhibit3-4***) 
+
+Moreover, we use **stepwise** approach to select the variables in regression model in terms of significance(see ***Appendix, Exhibit5-6***) and **make further adjustment by removing P15 and P25 (age groups from 15 to 34) and adding back P35(age group from 35-44)** because population of age group from 35-44 is the target customers of Croq'Pain.(see following ***Table 1***) 
+
+Our final model contains following variables as predictors:  
+* `K`: Capital Investment  
+* `INC`: regional income level  
+* `Size`: How spacious the restaurant is    
+* `P_35_total`: the proportion of residents aging from 35-44 in the region  
+* `NREST_total`: the amount of non-resturant Business per person in the region   
+
+***Table 1***
+
+```{r}
+result <- regress(dataset = "CroqPainFix", rvar = "EARN_total", evar = c("K", "INC", "SIZE", "P35_total", "NREST_total"), check = "standardize")
+summary(result, sum_check = "vif")
+```
+
+# Part IV: Model Test
+
+We split the dataset into two parts of `50 historical restaurants before 1994` and `10 restaurants after 1994`. By utilizing the model already built, we apply data of first 50 restaurants to amend regression model and to predict which restaurant after 1994 will achieve the profit goal of Croq`Pain.
+Finally we find that only two restaurants(`No.57` and `No.60`) could achieve the profit goal according to our prediction model.
+
+```{r}
+result <- regress(dataset = "CroqPainFix_<= 50", rvar = "EARN_total", evar = c("K", "SIZE", "INC", "P35_total", "NREST_total"), check = "standardize")
+pred <- predict(result, pred_data = "CroqPainFix_>50")
+store(pred, data = "CroqPainFix_>50", name = "pred_earning_total")
+# write.csv(pred, file = "~/reg_predictions.csv", row.names = FALSE)
+summary(result, sum_check = "vif")
+
+## create new variable(s)
+r_data[["CroqPainFix_>50"]] <- mutate(r_data[["CroqPainFix_>50"]], real_Ratio = EARN / K)
+r_data[["CroqPain_new"]] <- mutate(r_data[["CroqPain_new"]], pred_Ratio = (pred_earning_total*total) / K) 
+
+r_data[["CroqPainFix_>50"]]%>%
+	filter(pred_Ratio>= 0.26) %>%
+	select(STOR,pred_Ratio)
+```
+
+And the real situation is that only 3 (`No.51`, `No.57`, `No.60`) restaurants achieved this goal and the No.51 restaurant achieves approximately 27% which is close to 26%.(means it is okay if the model did not predict it)
+
+```{r}
+r_data[["CroqPainFix_>50"]]%>%
+	filter(real_Ratio>= 0.26) %>%
+	select(STOR,real_Ratio)
+```
+
+
+# Part V: Model Prediction
+
+We input prediction data of 10 potential restaurants after 1994 in the list, predict the restaurant's potential profitability. Then, performance ratios of predicted 10 stores are calculated. After predicting, there are only two potential location excess 26% level of profitability, which is `Toulouse` and `Montpellier`.
+
+
+
+```{r fig.width = 7, fig.height = 8.08, dpi = 96}
+## normalize variables
+r_data[["CroqPain_new"]] <- mutate_ext(r_data[["CroqPain_new"]], .vars = vars(P35, NREST), .funs = funs(normalize(.,total)), .ext = "_total")
+
+## predict
+result <- regress(dataset = "CroqPainFix", rvar = "EARN_total", evar = c("K", "SIZE", "INC", "P35_total", "NREST_total"), check = "standardize")
+pred <- predict(result, pred_data = "CroqPain_new")
+store(pred, data = "CroqPain_new", name = "pred_earning_total")
+# write.csv(pred, file = "~/reg_predictions.csv", row.names = FALSE)
+
+## create new variable(s)
+r_data[["CroqPain_new"]]%>%
+	filter(pred_Ratio>= 0.26) %>%
+	select(STOR,pred_Ratio)
+```
+
+# Part VI: Conclusion and Advice in Location Choice
+
+According to the model and prediction result, we high recommend that in choosing the location, Craq'pain should take these following factors into consideration:
+* `K`: Capital Investment  
+* `INC`: regional income level  
+* `Size`: How spacious the restaurant is    
+* `P_35_total`: the proportion of residents aging from 35-44 in the region  
+* `NREST_total`: the amount of non-resturant Business per person in the region
+
+And for the potential locations, we recommend to choose`Toulouse` and `Montpellier` to incest.
+
+# Part VII: Appendix
+
+## Exhibit 1: Histgram of variables
+
+```{r fig.width = 7, fig.height = 28, dpi = 96}
+visualize(dataset = "CroqPainFix", xvar = c("EARN", "K", "SIZE", "EMPL", "total", "P15", "P25", "P35", "P45", "P55", "INC", "COMP", "NCOMP", "NREST", "PRICE", "CLI"), yvar = "total", bins = 50, custom = FALSE)
+```
+
+## Exhibit 2: scatter of age group with total
+
+```{r fig.width = 7, fig.height = 10.5, dpi = 96}
+visualize(dataset = "CroqPainFix", xvar = c("P15", "P25", "P35", "P45", "P55"), yvar = "total", type = "scatter", check = c("line", "loess"), custom = FALSE)
+```
+
+## Exhibit 3: Regression with untransformed variables
+
+```{r fig.width = 7, fig.height = 8.08, dpi = 96}
+result <- regress(dataset = "CroqPainFix", rvar = "EARN", evar = c("K", "SIZE", "EMPL", "total", "P15", "P25", "P35", "P45", "P55", "INC", "COMP", "NCOMP", "NREST", "PRICE", "CLI"), check = "standardize")
+summary(result, sum_check = "vif")
+plot(result, plots = "dashboard", lines = c("line", "loess"), custom = FALSE)
+```
+
+## Exhibit 4: Regression with normalized variables
+
+```{r fig.width = 7, fig.height = 8.08, dpi = 96}
+r_data[["CroqPainFix"]] <- mutate_ext(r_data[["CroqPainFix"]], .vars = vars(EARN, P15, P25, P35, P45, P55, COMP, NCOMP, NREST), .funs = funs(normalize(.,total)), .ext = "_total")
+
+result <- regress(dataset = "CroqPainFix", rvar = "EARN_total", evar = c("K", "SIZE", "EMPL", "INC", "PRICE", "CLI", "P15_total", "P25_total", "P35_total", "P45_total", "P55_total", "COMP_total", "NCOMP_total", "NREST_total"), check = "standardize")
+summary(result, sum_check = "vif")
+plot(result, plots = "dashboard", lines = c("line", "loess"), custom = FALSE)
+```
+
+## Exhibit 5: Regression model We initially choose
+
+```{r fig.width = 7, fig.height = 8.08, dpi = 96}
+result <- regress(dataset = "CroqPainFix", rvar = "EARN_total", evar = c("K", "INC", "PRICE", "P15_total", "P25_total", "COMP_total", "NREST_total"), check = "standardize")
+summary(result, sum_check = "vif")
+```
+
+
+## Exhibit 6: Regression with transformed variables with stepwise function
+
+```{r fig.width = 7, fig.height = 8.08, dpi = 96}
+result <- regress(dataset = "CroqPainFix", rvar = "EARN_total", evar = c("K", "SIZE", "EMPL", "INC", "PRICE", "CLI", "P15_total", "P25_total", "P35_total", "P45_total", "P55_total", "COMP_total", "NCOMP_total", "NREST_total"), check = c("standardize", "stepwise-backward"))
+summary(result, sum_check = "vif")
+```
+
+
+
+
