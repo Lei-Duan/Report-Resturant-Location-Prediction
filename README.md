@@ -6,7 +6,7 @@ Hi, there!
 To be more detail, This a coding script &amp; report using Stepwise regression model to predict for a restaurant location choice based on both model performance and economical meaning behind parameters. 
 
 <h1 align="center">Where is the Next Croq' Pain?</h1>
-<img src="Pics/cover_pic.png",class="center">
+<img src="Pics/cover_pic.png" class="center">
 
 ## Part 1. Case Overview
 ### Background
@@ -24,7 +24,7 @@ Firstly, we explored data by reading the description and viewing its histogram, 
 After cross checking all data, we believe that the outlier (see in Exhibit 1) is caused by a mistake of data entry. Since the unit of earning is $1000 and all other store earnings are ranged from -40 to 399 thousand dollars, it's highly possible that the original earning of store 1 was inputted in a raw format instead of being divided by 1000.
 Thus, we removed all duplicates and divided the earning value in store 1 by 1000 for further processing.
 
-<img src="Pics/correlation.png",class="center">
+<img src="Pics/correlation.png" class="center">
                                                
 ### Data Exploration
 #### Histogram plot
@@ -37,12 +37,12 @@ By drawing scatterplots and correlation plots, high correlation is found among t
 Firstly, we normalized variables ‘EARN’, ‘COMP’, ‘NCOMP’, ‘NREST’ and all age group variables (i.e. P15-P55) by total amount of residents. By comparing the dashboard of regression using un-normalized and normalized variables, we prefer to normalize data for further analysis based on more accountable variables (i.e., earnings per person and population proportion in each age group) to eliminate the impact of total population on other variables (see Exhibit 4-5). 
 Moreover, we used “stepwise” approach to select variables in regression model based on significance (see Exhibit 6-7) and made further adjustment by removing P15 and P25 (i.e. age groups from 15 to 34) and adding back P35 (i.e. age group from 35-44), as people aged from 35 to 44 are the target customers of Croq'Pain. (see following Table 2)
 
-<img src="Pics/"Regression.png",class="center">
+<img src="Pics/"Regression.png" class="center">
                                                
 ## Part 4. Model Validation
 To validate the model, we split the dataset into two parts: ‘50 historical restaurants before 1994’ and ‘10 restaurants after 1994’. Then we applied data of first 50 restaurants to amend regression model (result seen in Table 3) and to predict which restaurant opened after 1994 would reach the performance ratio target of Croq'Pain (i.e., 26%).
 
-<img src="Pics/"validation.png",class="center">
+<img src="Pics/"validation.png" class="center">
                                                
 ## Part 5. Model Prediction
 Based on the model, we predicted the potential earning of 10 restaurants opened after 1994 and calculated their performance ratios accordingly. It turned out that only "Toulouse" and "Montpellier" (see in Table 6) exceeded 26% level of performance ratio.
