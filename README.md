@@ -2,6 +2,7 @@
 
 Hi, there!
 **This is a typical 101 case study for leverging Regression to understand the casuality of busiess.**
+
 To be more detail, This a coding script &amp; report using Stepwise regression model to predict for a restaurant location choice based on both model performance and economical meaning behind parameters. 
 
 <h1 align="center">Where is the Next Croq' Pain?</h1>
@@ -23,7 +24,8 @@ Firstly, we explored data by reading the description and viewing its histogram, 
 After cross checking all data, we believe that the outlier (see in Exhibit 1) is caused by a mistake of data entry. Since the unit of earning is $1000 and all other store earnings are ranged from -40 to 399 thousand dollars, it's highly possible that the original earning of store 1 was inputted in a raw format instead of being divided by 1000.
 Thus, we removed all duplicates and divided the earning value in store 1 by 1000 for further processing.
 
-<img src="Pics/"correlation.png",class="center">
+<img src="Pics/correlation.png",class="center">
+                                               
 ### Data Exploration
 #### Histogram plot
 After cleansing, we plotted the most variables' distribution, all of which look acceptable.
